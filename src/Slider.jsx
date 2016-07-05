@@ -155,11 +155,11 @@ class Slider extends Component {
   }
 
   prev() {
-    this.slide(-1)
+    this.slide(-1 * this.props.slidesToMove)
   }
 
   next() {
-    this.slide(1)
+    this.slide(1 * this.props.slidesToMove)
   }
 
   slide(direction) {
@@ -168,12 +168,7 @@ class Slider extends Component {
     const newState = {}
     let nextIndex = currentIndex
 
-    // when align type is left we make sure to only move the amount of slides that are available
-    if (this.props.align === 'left') {
-      nextIndex += this._getSlidesToMove(currentIndex, direction)
-    } else {
-      nextIndex += direction
-    }
+    nextIndex += direction
 
     // determine if we need to wrap the index
     if (this.props.infinite) {
@@ -186,9 +181,13 @@ class Slider extends Component {
       } else {
         newState.wrapping = false
       }
-    // bail out if index does not exist
-    } else if (!childrenArray[nextIndex]) {
-      return
+    } else {
+      // clip nextIndex to [0, slides count]
+      nextIndex = Math.max(0, Math.min(nextIndex, childrenArray.length - 1))
+      if (nextIndex === currentIndex) {
+        // bail out if index does not change
+        return
+      }
     }
 
     newState.currentIndex = nextIndex
@@ -204,15 +203,6 @@ class Slider extends Component {
   _getSliderDimensions() {
     this._sliderWidth = this._node.offsetWidth
     this._sliderHeight = this._node.offsetHeight
-  }
-
-  _getSlidesToMove(index, direction) {
-    const { slidesToShow, slidesToMove } = this.props
-    const slidesRemaining = (direction === 1)
-      ? this._slideCount - (index + slidesToShow)
-      : index
-
-    return Math.min(slidesRemaining, slidesToMove) * direction
   }
 
   _onChange(index, slidesToShow) {
@@ -303,14 +293,17 @@ class Slider extends Component {
 
   _onSwipeEnd = () =>  {
     const { swipeThreshold } = this.props
-    const threshold = this._isFlick ? swipeThreshold : (this._sliderWidth * swipeThreshold)
+    const fullWidth = this._trackWidth * this._sliderWidth / 100
+    const slideWidth = fullWidth / this._slideCount // in px
+    const threshold = this._isFlick ? swipeThreshold : (slideWidth * swipeThreshold)
 
     this.setState({
       swipeOffset: 0,
       instant: false
     }, () => {
       if (this._isSwipe(threshold)) {
-        (this._deltaX < 0) ? this.prev() : this.next()
+        const howMany = Math.round(this._deltaX / (fullWidth / this._slideCount));
+        this.slide(howMany)
       }
     })
 

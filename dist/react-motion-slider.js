@@ -68,6 +68,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	exports.default = _Slider2.default;
+	module.exports = exports['default'];
 
 /***/ },
 /* 1 */
@@ -221,14 +222,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, _this._onSwipeEnd = function () {
 	      var swipeThreshold = _this.props.swipeThreshold;
 
-	      var threshold = _this._isFlick ? swipeThreshold : _this._sliderWidth * swipeThreshold;
+	      var fullWidth = _this._trackWidth * _this._sliderWidth / 100;
+	      var slideWidth = fullWidth / _this._slideCount; // in px
+	      var threshold = _this._isFlick ? swipeThreshold : slideWidth * swipeThreshold;
 
 	      _this.setState({
 	        swipeOffset: 0,
 	        instant: false
 	      }, function () {
 	        if (_this._isSwipe(threshold)) {
-	          _this._deltaX < 0 ? _this.prev() : _this.next();
+	          var howMany = Math.round(_this._deltaX / (fullWidth / _this._slideCount));
+	          _this.slide(howMany);
 	        }
 	      });
 
@@ -317,8 +321,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	            // nextIndex += this._getSlidesToMove(nextIndex, direction)
 	            // if not containing, make sure index stays within bounds
 	          } else {
-	              nextIndex = Math.max(0, Math.min(nextIndex, _this2._slideCount - 1));
-	            }
+	            nextIndex = Math.max(0, Math.min(nextIndex, _this2._slideCount - 1));
+	          }
 
 	          _this2._beforeSlide(_this2.state.currentIndex, nextIndex);
 
@@ -331,8 +335,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	          // if slidesToShow has changed we need to fire an onChange with the updated indexes
 	        })();
 	      } else if (this.props.slidesToShow !== slidesToShow) {
-	          this._onChange(this.state.currentIndex, slidesToShow);
-	        }
+	        this._onChange(this.state.currentIndex, slidesToShow);
+	      }
 
 	      // if we are receiving new slides we need to animate to the new position instantly
 	      if (_react.Children.count(this.props.children) !== _react.Children.count(children)) {
@@ -354,12 +358,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }, {
 	    key: 'prev',
 	    value: function prev() {
-	      this.slide(-1);
+	      this.slide(-1 * this.props.slidesToMove);
 	    }
 	  }, {
 	    key: 'next',
 	    value: function next() {
-	      this.slide(1);
+	      this.slide(1 * this.props.slidesToMove);
 	    }
 	  }, {
 	    key: 'slide',
@@ -372,12 +376,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var newState = {};
 	      var nextIndex = currentIndex;
 
-	      // when align type is left we make sure to only move the amount of slides that are available
-	      if (this.props.align === 'left') {
-	        nextIndex += this._getSlidesToMove(currentIndex, direction);
-	      } else {
-	        nextIndex += direction;
-	      }
+	      nextIndex += direction;
 
 	      // determine if we need to wrap the index
 	      if (this.props.infinite) {
@@ -389,10 +388,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	        } else {
 	          newState.wrapping = false;
 	        }
-	        // bail out if index does not exist
-	      } else if (!childrenArray[nextIndex]) {
+	      } else {
+	        // clip nextIndex to [0, slides count]
+	        nextIndex = Math.max(0, Math.min(nextIndex, childrenArray.length - 1));
+	        if (nextIndex === currentIndex) {
+	          // bail out if index does not change
 	          return;
 	        }
+	      }
 
 	      newState.currentIndex = nextIndex;
 	      newState.currentKey = (0, _getKeyFromIndex2.default)(nextIndex, this.props.children);
@@ -408,17 +411,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function _getSliderDimensions() {
 	      this._sliderWidth = this._node.offsetWidth;
 	      this._sliderHeight = this._node.offsetHeight;
-	    }
-	  }, {
-	    key: '_getSlidesToMove',
-	    value: function _getSlidesToMove(index, direction) {
-	      var _props2 = this.props;
-	      var slidesToShow = _props2.slidesToShow;
-	      var slidesToMove = _props2.slidesToMove;
-
-	      var slidesRemaining = direction === 1 ? this._slideCount - (index + slidesToShow) : index;
-
-	      return Math.min(slidesRemaining, slidesToMove) * direction;
 	    }
 	  }, {
 	    key: '_onChange',
@@ -521,17 +513,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function render() {
 	      var _this4 = this;
 
-	      var _props3 = this.props;
-	      var children = _props3.children;
-	      var springConfig = _props3.springConfig;
-	      var autoHeight = _props3.autoHeight;
-	      var infinite = _props3.infinite;
+	      var _props2 = this.props;
+	      var children = _props2.children;
+	      var springConfig = _props2.springConfig;
+	      var autoHeight = _props2.autoHeight;
+	      var infinite = _props2.infinite;
 	      var _state3 = this.state;
 	      var currentIndex = _state3.currentIndex;
 	      var lastIndex = _state3.lastIndex;
-	      var instant = _state3.instant;
 	      var height = _state3.height;
 
+	      var instant = this.props.instant || this.state.instant;
 	      var destValue = this._getDestValue();
 
 	      return _react2.default.createElement(
@@ -603,6 +595,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  slidesToShow: _react.PropTypes.number,
 	  slidesToMove: _react.PropTypes.number,
 	  infinite: _react.PropTypes.bool,
+	  instant: _react.PropTypes.bool,
 	  vertical: _react.PropTypes.bool,
 	  autoHeight: _react.PropTypes.bool,
 	  align: _react.PropTypes.oneOf(['left', 'center', 'right']),
@@ -619,6 +612,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  slidesToShow: 1,
 	  slidesToMove: 1,
 	  infinite: false,
+	  instant: false,
 	  vertical: false,
 	  autoHeight: false,
 	  align: 'left',
@@ -637,6 +631,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 	};
 	exports.default = Slider;
+	module.exports = exports['default'];
 
 /***/ },
 /* 2 */
@@ -738,6 +733,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}(_react.Component);
 
 	exports.default = Slide;
+	module.exports = exports['default'];
 
 /***/ },
 /* 6 */
@@ -764,6 +760,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  return index;
 	}
+	module.exports = exports['default'];
 
 /***/ },
 /* 7 */
@@ -790,6 +787,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  return key;
 	}
+	module.exports = exports['default'];
 
 /***/ },
 /* 8 */
@@ -814,6 +812,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  return range;
 	}
+	module.exports = exports["default"];
 
 /***/ },
 /* 9 */
@@ -828,6 +827,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	function modulo(val, max) {
 	  return val < 0 ? (val % max + max) % max : val % max;
 	}
+	module.exports = exports["default"];
 
 /***/ },
 /* 10 */
