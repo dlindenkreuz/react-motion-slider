@@ -12,7 +12,6 @@ app/bower_components
 .npmignore
 npm-debug.log
 node_modules
-lib
 
 # General Files
 .sass-cache
